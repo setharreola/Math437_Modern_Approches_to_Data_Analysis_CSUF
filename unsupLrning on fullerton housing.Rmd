@@ -1,0 +1,390 @@
+---
+title: "Clustering on Fullerton Housing"
+date: "`r format(Sys.time(), '%B %d, %Y')`"
+output:
+  bookdown::html_document2:
+    number_sections: no
+    fig_caption: true
+    toc: true
+    toc_float: true
+    toc_depth: 3
+header-includes:
+- \usepackage{graphicx}
+- \usepackage{float}
+editor_options:
+  chunk_output_type: inline
+---
+
+```{r setup knit, include=FALSE}
+knitr::opts_chunk$set(
+	fig.align = "center",
+	fig.pos = "H",
+	message = FALSE,
+	warning = FALSE,
+	external = TRUE,
+	echo = TRUE
+)
+
+library(tidyverse)  # data manipulation
+library(magrittr)   # data manipulation
+library(ggsci)      # data visualization
+library(kableExtra)  # formatted tables
+
+library(factoextra)  # dendragram and elbow method
+library(mclust)      # model-based clustering
+```
+
+
+# I. Preparing data
+
+
+```{r}
+# clean data 
+Fullerton <- 
+  read.csv("FullertonHousing.csv") %>% 
+  mutate(LOT_SIZE = ifelse(is.na(LOT_SIZE), SQUARE_FEET, LOT_SIZE),
+         ZIP = as.factor(ZIP)) %>% 
+  select(PROPERTY_TYPE,ZIP,PRICE,DAYS_ON_MARKET,YEAR_BUILT,LOT_SIZE,SQUARE_FEET)
+
+# check sample size
+table(Fullerton[,1:2]) %>% 
+  kable(caption = "Sample sizes per zip code per property tpye") %>% 
+  kable_styling(bootstrap_options = "striped", full_width = F)
+```
+
+
+# II. Clustering per zip code
+
+
+## ZIP 92835
+
+
+### EDA
+
+
+```{r}
+zip_code = 92835
+
+subset = Fullerton %>% filter(ZIP == zip_code) %>% select(-ZIP) %>% droplevels()
+X = subset[,-1] %>% as.matrix()
+rownames(X) = paste0('id_', 1:nrow(X))
+```
+
+
+```{r fig.width=10, fig.cap=""}
+subset %>% 
+  reshape2::melt(id.vars = 'PROPERTY_TYPE') %>% 
+  ggplot(aes(x = value, fill = PROPERTY_TYPE))+
+  geom_histogram() +
+  scale_fill_jco() +
+  facet_wrap(~variable, scales = "free") +
+  theme_minimal() +
+  labs(x = "")
+```
+
+
+```{r}
+clPairs(X, subset[,1])
+```
+
+
+### Hierarchical clustering 
+
+
+```{r}
+# scale the data
+X_scaled = scale(X)
+
+# compute the euclidean distance
+d <- dist(X_scaled, method = "euclidean")
+
+# compute hierarchical clustering 
+hc <- hclust(d, method = "complete" ) #Options: "average", "single", "complete", "ward"
+```
+
+
+#### Optimal clusters
+
+
+```{r}
+# elbow method for optimal clusters
+fviz_nbclust(X, FUN = hcut, method = "wss")
+
+# # Other methods
+# # a. average silhouette method
+# fviz_nbclust(X, FUN = hcut, method = "silhouette")
+# # b. gap statistic method
+# gap_stat <- cluster::clusGap(X, FUN = hcut, nstart = 25, K.max = 10, B = 50)
+# fviz_gap_stat(gap_stat)
+```
+
+
+#### Cut-off tree
+
+
+```{r fig.height = 12, fig.width = 12}
+# cut tree
+cut_off <- 4
+myCluster <- cutree(hc, cut_off)
+
+# plot dendrogram
+fviz_dend(hc, 
+          k = cut_off,                 
+          cex = 0.5,             
+          k_colors = "jco",
+          color_labels_by_k = FALSE,
+          horiz = TRUE,
+          ggtheme = theme_minimal(),
+          main = ""
+          )
+```
+
+
+
+### Model-based clustering
+
+#### Find optimal components
+
+```{r}
+BIC <- mclustBIC(X)  # not necessary to sclae
+plot(BIC)
+
+summary(BIC)
+```
+
+
+```{r}
+# There are other criteria, such as ICL (integrated classification likelihood)
+# ICL <- mclustICL(X)
+# plot(ICL)
+# summary(ICL)
+```
+
+
+#### Fit with optimal components
+
+
+```{r}
+model <- Mclust(X, x = BIC)
+summary(model, parameters = TRUE)
+```
+
+#### Plot the results
+
+```{r}
+plot(model, what = "classification")
+```
+
+
+
+## ZIP 92831
+
+
+### EDA
+
+
+```{r}
+zip_code = 92831
+
+subset = Fullerton %>% filter(ZIP == zip_code) %>% select(-ZIP) %>% droplevels()
+X = subset[,-1] %>% as.matrix()
+rownames(X) = paste0('id_', 1:nrow(X))
+```
+
+
+```{r fig.width=10, fig.cap=""}
+subset %>% 
+  reshape2::melt(id.vars = 'PROPERTY_TYPE') %>% 
+  ggplot(aes(x = value, fill = PROPERTY_TYPE))+
+  geom_histogram() +
+  scale_fill_jco() +
+  facet_wrap(~variable, scales = "free") +
+  theme_minimal() +
+  labs(x = "")
+```
+
+
+```{r}
+clPairs(X, subset[,1])
+```
+
+
+### Hierarchical clustering 
+
+
+```{r}
+# scale the data
+X_scaled = scale(X)
+
+# compute the euclidean distance
+d <- dist(X_scaled, method = "euclidean")
+
+# compute hierarchical clustering 
+hc <- hclust(d, method = "complete" ) #Options: "average", "single", "complete", "ward"
+```
+
+
+#### Optimal clusters
+
+
+```{r}
+# elbow method for optimal clusters
+fviz_nbclust(X, FUN = hcut, method = "wss")
+```
+
+
+#### Cut-off tree
+
+
+```{r fig.height = 12, fig.width = 12}
+# cut tree
+cut_off <- 4
+myCluster <- cutree(hc, cut_off)
+
+# plot dendrogram
+fviz_dend(hc, 
+          k = cut_off,                 
+          cex = 0.5,             
+          k_colors = "jco",
+          color_labels_by_k = FALSE,
+          horiz = TRUE,
+          ggtheme = theme_minimal(),
+          main = ""
+          )
+```
+
+
+
+### Model-based clustering
+
+#### Find optimal components
+
+```{r}
+BIC <- mclustBIC(X)  # not necessary to sclae
+plot(BIC)
+
+summary(BIC)
+```
+
+
+#### Fit with optimal components
+
+
+```{r}
+model <- Mclust(X, x = BIC)
+summary(model, parameters = TRUE)
+```
+
+
+#### Plot the results
+
+
+```{r}
+plot(model, what = "classification")
+```
+
+
+# III. Clustering per house type 
+
+
+## Single Family Residential
+
+### EDA
+
+
+```{r}
+property_type = "Single Family Residential"
+
+subset = Fullerton %>% filter(PROPERTY_TYPE == property_type) %>% select(-PROPERTY_TYPE) %>% droplevels()
+X = subset[,-1] %>% as.matrix()
+rownames(X) = paste0('id_', 1:nrow(X))
+```
+
+
+
+```{r}
+clPairs(X, subset[,1])
+```
+
+
+### Hierarchical clustering 
+
+
+```{r}
+# scale the data
+X_scaled = scale(X)
+
+# compute the euclidean distance
+d <- dist(X_scaled, method = "euclidean")
+
+# compute hierarchical clustering 
+hc <- hclust(d, method = "complete" ) #Options: "average", "single", "complete", "ward"
+```
+
+
+#### Optimal clusters
+
+
+```{r}
+# elbow method for optimal clusters
+fviz_nbclust(X, FUN = hcut, method = "wss")
+```
+
+
+#### Cut-off tree
+
+
+```{r fig.height = 18, fig.width = 12}
+# cut tree
+cut_off <- 4
+myCluster <- cutree(hc, cut_off)
+
+# plot dendrogram
+fviz_dend(hc, 
+          k = cut_off,                 
+          cex = 0.5,             
+          k_colors = "jco",
+          color_labels_by_k = FALSE,
+          horiz = TRUE,
+          ggtheme = theme_minimal(),
+          main = ""
+          )
+```
+
+
+
+### Model-based clustering
+
+#### Find optimal components
+
+```{r}
+BIC <- mclustBIC(X)  # not necessary to sclae
+plot(BIC)
+
+summary(BIC)
+```
+
+
+#### Fit with optimal components
+
+
+```{r}
+model <- Mclust(X, x = BIC)
+summary(model, parameters = TRUE)
+```
+
+
+#### Plot the results
+
+
+```{r}
+plot(model, what = "classification")
+```
+
+
+
+
+
+
+
+

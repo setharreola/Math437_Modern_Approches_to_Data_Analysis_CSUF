@@ -1,0 +1,326 @@
+---
+title: "PCR on Fullerton Housing"
+date: "`r format(Sys.time(), '%B %d, %Y')`"
+output:
+  bookdown::html_document2:
+    number_sections: no
+    fig_caption: true
+    toc: true
+    toc_float: true
+    toc_depth: 3
+header-includes:
+- \usepackage{graphicx}
+- \usepackage{float}
+editor_options:
+  chunk_output_type: inline
+---
+
+```{r setup knit, include=FALSE}
+knitr::opts_chunk$set(
+	fig.align = "center",
+	fig.pos = "H",
+	message = FALSE,
+	warning = FALSE,
+	external = TRUE,
+	echo = TRUE
+)
+
+library(tidyverse)
+library(magrittr)
+
+library(DataExplorer)
+library(lubridate)
+
+library(pls)
+
+library(ggsci)
+library(kableExtra)
+```
+
+
+```{r}
+# clean data 
+Fullerton <- 
+  read.csv('FullertonHousing.csv') %>% 
+  mutate(SOLD_DATE = mdy(SOLD_DATE),
+         # SOLD_MONTH = month(SOLD_DATE, label = TRUE),
+         ZIP = as.factor(ZIP),
+         LOT_SIZE = ifelse(is.na(LOT_SIZE), SQUARE_FEET, LOT_SIZE),
+         HOA = ifelse(is.na(HOA), 0, HOA)) %>% 
+  select(-c(SOLD_DATE,CITY,STATE,HOA))
+
+str(Fullerton)
+```
+
+## Cross Validation
+
+```{r}
+set.seed(2)
+pcr_fit <- pcr(PRICE~., data = Fullerton, scale = TRUE, validation = "CV")
+summary(pcr_fit)
+```
+
+## Validation Plots {.tabset}
+
+### RMSEP
+
+```{r}
+validationplot(pcr_fit, val.type="RMSEP", cex.axis=0.7)
+axis(side = 1, at = c(7), cex.axis=0.7)
+abline(v = 7, col = "blue", lty = 3)
+```
+
+### MSEP
+
+```{r}
+validationplot(pcr_fit, val.type="MSEP", cex.axis=0.7)
+axis(side = 1, at = c(7), cex.axis=0.7)
+abline(v = 7, col = "blue", lty = 3)
+```
+
+### R2
+
+```{r}
+validationplot(pcr_fit, val.type="R2", cex.axis=0.7)
+axis(side = 1, at = c(7), cex.axis=0.7)
+abline(v = 7, col = "blue", lty = 3)
+```
+
+
+## Coefficients
+
+```{r}
+pcr_fit2 <- pcr(PRICE~., data = Fullerton, scale = TRUE, ncomp = 7)
+
+coef_tb <- pcr_fit2$coefficients %>% data.frame() 
+coef_tb[,2:7] %>% 
+  round(2) %>% 
+  set_colnames(paste(c(2:7),'comps')) %>% 
+  kable() %>% 
+  kable_styling()
+```
+
+
+## ZIP 92831
+
+### Cross Validation
+
+```{r}
+Fullerton_subset <- Fullerton %>% filter(ZIP == 92831) %>% select(-ZIP)
+
+set.seed(2)
+pcr_fit <- pcr(PRICE~., data = Fullerton_subset, scale = TRUE, validation = "CV")
+summary(pcr_fit)
+```
+
+### Validation Plots {.tabset}
+
+### RMSEP
+
+```{r}
+validationplot(pcr_fit, val.type="RMSEP", cex.axis=0.7)
+axis(side = 1, at = c(5), cex.axis=0.7)
+abline(v = 5, col = "blue", lty = 3)
+```
+
+
+### MSEP
+
+```{r}
+validationplot(pcr_fit, val.type="MSEP", cex.axis=0.7)
+axis(side = 1, at = c(5), cex.axis=0.7)
+abline(v = 5, col = "blue", lty = 3)
+```
+
+
+### R2
+
+```{r}
+validationplot(pcr_fit, val.type="R2", cex.axis=0.7)
+axis(side = 1, at = c(5), cex.axis=0.7)
+abline(v = 5, col = "blue", lty = 3)
+```
+
+
+### Coefficients
+
+```{r}
+pcr_fit2 <- pcr(PRICE~., data = Fullerton_subset, scale = TRUE, ncomp = 5)
+
+coef_tb <- pcr_fit2$coefficients %>% data.frame() 
+coef_tb[,2:5] %>% 
+  round(2) %>% 
+  set_colnames(paste(c(2:5),'comps')) %>% 
+  kable() %>% 
+  kable_styling()
+```
+
+
+## ZIP 92832
+
+### Cross Validation
+
+```{r}
+Fullerton_subset <- Fullerton %>% filter(ZIP == 92832) %>% select(-ZIP)
+
+set.seed(2)
+pcr_fit <- pcr(PRICE~., data = Fullerton_subset, scale = TRUE, validation = "CV")
+summary(pcr_fit)
+```
+
+### Validation Plots {.tabset}
+
+### RMSEP
+
+```{r}
+validationplot(pcr_fit, val.type="RMSEP", cex.axis=0.7)
+axis(side = 1, at = c(4), cex.axis=0.7)
+abline(v = 4, col = "blue", lty = 3)
+```
+
+
+### MSEP
+
+```{r}
+validationplot(pcr_fit, val.type="MSEP", cex.axis=0.7)
+axis(side = 1, at = c(4), cex.axis=0.7)
+abline(v = 4, col = "blue", lty = 3)
+```
+
+
+### R2
+
+```{r}
+validationplot(pcr_fit, val.type="R2", cex.axis=0.7)
+axis(side = 1, at = c(4), cex.axis=0.7)
+abline(v = 4, col = "blue", lty = 3)
+```
+
+
+### Coefficients
+
+```{r}
+pcr_fit2 <- pcr(PRICE~., data = Fullerton_subset, scale = TRUE, ncomp = 4)
+
+coef_tb <- pcr_fit2$coefficients %>% data.frame() 
+coef_tb[,2:4] %>% 
+  round(2) %>% 
+  set_colnames(paste(c(2:4),'comps')) %>% 
+  kable() %>% 
+  kable_styling()
+```
+
+
+## ZIP 92833
+
+### Cross Validation
+
+```{r}
+# droplevels: only two types of properties in 92833, either condo or single family residental
+Fullerton_subset <- Fullerton %>% filter(ZIP == 92833) %>% select(-ZIP) %>% droplevels() 
+
+set.seed(2)
+pcr_fit <- pcr(PRICE~., data = Fullerton_subset, scale = TRUE, validation = "CV")
+summary(pcr_fit)
+```
+
+### Validation Plots {.tabset}
+
+### RMSEP
+
+```{r}
+validationplot(pcr_fit, val.type="RMSEP", cex.axis=0.7)
+axis(side = 1, at = c(5), cex.axis=0.7)
+abline(v = 5, col = "blue", lty = 3)
+```
+
+
+### MSEP
+
+```{r}
+validationplot(pcr_fit, val.type="MSEP", cex.axis=0.7)
+axis(side = 1, at = c(5), cex.axis=0.7)
+abline(v = 5, col = "blue", lty = 3)
+```
+
+
+### R2
+
+```{r}
+validationplot(pcr_fit, val.type="R2", cex.axis=0.7)
+axis(side = 1, at = c(5), cex.axis=0.7)
+abline(v = 5, col = "blue", lty = 3)
+```
+
+
+### Coefficients
+
+```{r}
+pcr_fit2 <- pcr(PRICE~., data = Fullerton_subset, scale = TRUE, ncomp = 5)
+
+coef_tb <- pcr_fit2$coefficients %>% data.frame() 
+coef_tb[,2:5] %>% 
+  round(2) %>% 
+  set_colnames(paste(c(2:5),'comps')) %>% 
+  kable() %>% 
+  kable_styling()
+```
+
+
+## ZIP 92835
+
+### Cross Validation
+
+```{r}
+Fullerton_subset <- Fullerton %>% filter(ZIP == 92835) %>% select(-ZIP)
+
+set.seed(2)
+pcr_fit <- pcr(PRICE~., data = Fullerton_subset, scale = TRUE, validation = "CV")
+summary(pcr_fit)
+```
+
+### Validation Plots {.tabset}
+
+### RMSEP
+
+```{r}
+validationplot(pcr_fit, val.type="RMSEP", cex.axis=0.7)
+axis(side = 1, at = c(5), cex.axis=0.7)
+abline(v = 5, col = "blue", lty = 3)
+```
+
+
+### MSEP
+
+```{r}
+validationplot(pcr_fit, val.type="MSEP", cex.axis=0.7)
+axis(side = 1, at = c(5), cex.axis=0.7)
+abline(v = 5, col = "blue", lty = 3)
+```
+
+
+### R2
+
+```{r}
+validationplot(pcr_fit, val.type="R2", cex.axis=0.7)
+axis(side = 1, at = c(5), cex.axis=0.7)
+abline(v = 5, col = "blue", lty = 3)
+```
+
+
+### Coefficients
+
+```{r}
+pcr_fit2 <- pcr(PRICE~., data = Fullerton_subset, scale = TRUE, ncomp = 5)
+
+coef_tb <- pcr_fit2$coefficients %>% data.frame() 
+coef_tb[,2:5] %>% 
+  round(2) %>% 
+  set_colnames(paste(c(2:5),'comps')) %>% 
+  kable() %>% 
+  kable_styling()
+```
+
+
+
+
